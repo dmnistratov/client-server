@@ -3,13 +3,13 @@
 #include <memory>
 #include <utility>
 #include <bitset>
+#include <fstream>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "messages.pb.h"
+#include "../proto/messages.pb.h"
 
 using boost::asio::ip::tcp;
 using namespace TestTask::Messages;
-using namespace TestTask;
 
 class session
     : public std::enable_shared_from_this<session>
@@ -33,6 +33,11 @@ class session
             socket_.async_read_some(boost::asio::buffer(data_, max_length),
                 [this, self](boost::system::error_code ec, std::size_t length)
                 {
+                    if ((boost::asio::error::eof == ec) ||
+                    (boost::asio::error::connection_reset == ec))
+                    {
+                    std::cout << "Disconnect" << std::endl;
+                    }
                     if (!ec){
                         message_ = new WrapperMessage();
                         message_->ParseFromString(data_);
@@ -40,7 +45,7 @@ class session
                         slow_write();
                     }
                 });
-            
+
             //timer_.expires_from_now(boost::posix_time::seconds(atoi(data_)));
             //timer_.async_wait([this, self](boost::system::error_code ec) {
                 //if (!ec)
@@ -69,6 +74,11 @@ class session
             boost::asio::async_write(socket_, boost::asio::buffer(request.c_str(), request.size()),
             [this, self](boost::system::error_code ec, std::size_t /*length*/)
             {
+                if ((boost::asio::error::eof == ec) ||
+                (boost::asio::error::connection_reset == ec))
+                {
+                std::cout << "Disconnect" << std::endl;
+                }
                 if (!ec)
                 {
                     do_read();
@@ -96,7 +106,6 @@ class tcp_server
                     if (!ec){
                         std::make_shared<session>(std::move(socket), std::move(timer_))->start();
                     }
-
                     do_accept();
                 });
         }
@@ -109,19 +118,23 @@ int main(int argc, char* argv[])
 {
     try
     {
-        if (argc != 2){
-            std::cerr << "Usage: async_tcp_server <port>\n";
-            return 1;
-        }
+        std::ifstream port_ini("src/port.ini");
+
+        std::string port;
+
+        if ( port_ini.is_open() )
+            port_ini >> port; 
+        else
+            std::cerr << "Error while oppening the file" << std::endl;;
 
         boost::asio::io_context io_context;
 
-        tcp_server server(io_context, std::atoi(argv[1]));
+        tcp_server server(io_context, std::stoi(port));
 
         io_context.run();
     }
     catch(const std::exception& e){
-        std::cerr << e.what() << '\n';
+        std::cerr << e.what() << std::endl;
     }
     
     return 0;

@@ -1,6 +1,8 @@
 import socket
 import sys
-import messages_pb2
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import proto.messages_pb2 as messages
 import argparse
 
 #Arg parser for CLI
@@ -11,7 +13,7 @@ g.add_argument("-s", "--slow", type=int)
 
 args= parser.parse_args()
 
-message = messages_pb2.WrapperMessage()
+message = messages.WrapperMessage()
 
 if args.fast:
     message.request_for_fast_response.SetInParent()
