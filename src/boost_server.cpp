@@ -15,14 +15,14 @@ class session
     : public std::enable_shared_from_this<session>
 {
     public:
-        session(tcp::socket socket, boost::asio::deadline_timer timer)
-            : socket_(std::move(socket)), timer_(std::move(timer)){
+        session(tcp::socket socket, boost::asio::deadline_timer timer, int* connections)
+            : socket_(std::move(socket)), timer_(std::move(timer)), connections_(connections){
             }
 
         void start(){
             // #TODO
             std::cout << "Connected " << socket << std::endl;
-
+            *connections_ += 1;
             do_read();
         }
 
@@ -36,7 +36,8 @@ class session
                     if ((boost::asio::error::eof == ec) ||
                     (boost::asio::error::connection_reset == ec))
                     {
-                    std::cout << "Disconnect" << std::endl;
+                        std::cout << "Disconnect" << std::endl;
+                        *connections_ -= 1;
                     }
                     if (!ec){
                         message_ = new WrapperMessage();
@@ -45,19 +46,13 @@ class session
                         slow_write();
                     }
                 });
-
-            //timer_.expires_from_now(boost::posix_time::seconds(atoi(data_)));
-            //timer_.async_wait([this, self](boost::system::error_code ec) {
-                //if (!ec)
-                //    std::cout << "Read msg" << socket << " data " << atoi(data_) << std::endl;
-                //});
         }
 
         void slow_write(){
             auto self(shared_from_this());
             WrapperMessage* new_msg = new WrapperMessage();
             SlowResponse* slow = new SlowResponse();
-            slow->set_connected_client_count(5);
+            slow->set_connected_client_count(*connections_);
             new_msg->set_allocated_slow_response(slow);
             timer_.expires_from_now(boost::posix_time::seconds(message_->request_for_slow_response().time_in_seconds_to_sleep()));
             timer_.async_wait([this, self, new_msg](const boost::system::error_code &ec){
@@ -77,7 +72,8 @@ class session
                 if ((boost::asio::error::eof == ec) ||
                 (boost::asio::error::connection_reset == ec))
                 {
-                std::cout << "Disconnect" << std::endl;
+                    std::cout << "Disconnect" << std::endl;
+                    *connections_ -= 1;
                 }
                 if (!ec)
                 {
@@ -87,6 +83,7 @@ class session
         }
     enum { max_length = 1024 };
     char data_[max_length];
+    int* connections_;
     WrapperMessage* message_;
     tcp::socket socket_;
     boost::asio::deadline_timer timer_;
@@ -96,7 +93,7 @@ class tcp_server
 {
     public:
         tcp_server(boost::asio::io_context& io_context, short port)
-            : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)), timer_(io_context){
+            : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)), timer_(io_context), total_connections_(new int(0)){
             do_accept();
         }
     private:
@@ -104,12 +101,13 @@ class tcp_server
             acceptor_.async_accept(
                 [this](boost::system::error_code ec, tcp::socket socket){
                     if (!ec){
-                        std::make_shared<session>(std::move(socket), std::move(timer_))->start();
+                        std::make_shared<session>(std::move(socket), std::move(timer_), total_connections_)->start();
                     }
                     do_accept();
                 });
         }
 
+    int* total_connections_;
     tcp::acceptor acceptor_;
     boost::asio::deadline_timer timer_;
 };
