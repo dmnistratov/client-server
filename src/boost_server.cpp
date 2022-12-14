@@ -41,8 +41,20 @@ class session
                     if (!ec){
                         message_ = new WrapperMessage();
                         message_->ParseFromString(data_);
-                        write_log("Client send request for slow response. Time to sleep = " + std::to_string(message_->request_for_slow_response().time_in_seconds_to_sleep()));
-                        slow_write();
+
+                        if (message_->has_request_for_fast_response())
+                        {
+                            write_log("Client send request for fast response.");
+                            fast_response();
+                            return;
+                        }
+
+                        if (message_->has_request_for_slow_response())
+                        {
+                            write_log("Client send request for slow response. Time to sleep = " + std::to_string(message_->request_for_slow_response().time_in_seconds_to_sleep()));
+                            slow_write();
+                            return;
+                        }  
                     }
                 });
         }
@@ -60,6 +72,7 @@ class session
             fast_response->set_current_date_time(iso_datetime_string_for_FastResponse);
             response->set_allocated_fast_response(fast_response);
             do_write(std::move(response));
+            write_log("Server send fast response.");
         }
 
         void slow_write(){
