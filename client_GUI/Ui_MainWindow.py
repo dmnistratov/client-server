@@ -157,7 +157,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Client"))
         self.apply_ip.setText(_translate("MainWindow", "apply"))
         self.label_ip.setText(_translate("MainWindow", "ip:"))
         self.timeout_fast.setText(_translate("MainWindow", "10"))
