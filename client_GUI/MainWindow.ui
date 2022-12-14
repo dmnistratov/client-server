@@ -93,7 +93,7 @@
      <rect>
       <x>155</x>
       <y>260</y>
-      <width>21</width>
+      <width>31</width>
       <height>21</height>
      </rect>
     </property>
@@ -236,7 +236,7 @@
      <rect>
       <x>545</x>
       <y>260</y>
-      <width>21</width>
+      <width>31</width>
       <height>21</height>
      </rect>
     </property>
@@ -358,7 +358,7 @@
      <string>apply</string>
     </property>
    </widget>
-   <widget class="QSlider" name="timeout_slider_slow_2">
+   <widget class="QSlider" name="reconnect_slider">
     <property name="geometry">
      <rect>
       <x>465</x>
