@@ -20,8 +20,7 @@ class session
             }
 
         void start(){
-            // #TODO
-            std::cout << "Connected " << socket << std::endl;
+            write_log("Client connected. ");
             *connections_ += 1;
             do_read();
         }
@@ -36,13 +35,13 @@ class session
                     if ((boost::asio::error::eof == ec) ||
                     (boost::asio::error::connection_reset == ec))
                     {
-                        std::cout << "Disconnect" << std::endl;
+                        write_log("Client disconnected.");
                         *connections_ -= 1;
                     }
                     if (!ec){
                         message_ = new WrapperMessage();
                         message_->ParseFromString(data_);
-                        std::cout << message_->request_for_slow_response().time_in_seconds_to_sleep() << std::endl;
+                        write_log("Client send request for slow response. Time to sleep = " + std::to_string(message_->request_for_slow_response().time_in_seconds_to_sleep()));
                         slow_write();
                     }
                 });
@@ -72,6 +71,7 @@ class session
             timer_.expires_from_now(boost::posix_time::seconds(message_->request_for_slow_response().time_in_seconds_to_sleep()));
             timer_.async_wait([this, self, new_msg](const boost::system::error_code &ec){
                 if (!ec){
+                    write_log("Server send slow response with count connections = " + std::to_string(*connections_));
                     do_write(std::move(new_msg));
             }});
         }
@@ -87,7 +87,7 @@ class session
                 if ((boost::asio::error::eof == ec) ||
                 (boost::asio::error::connection_reset == ec))
                 {
-                    std::cout << "Disconnect" << std::endl;
+                    write_log("Client disconnected.");
                     *connections_ -= 1;
                 }
                 if (!ec)
@@ -96,6 +96,21 @@ class session
                 }
             });
         }
+
+        void write_log(std::string msg)
+        {
+            std::ofstream log("log.log", std::ios_base::app);
+
+            if (log.is_open())
+            {
+                auto time = boost::posix_time::microsec_clock::local_time();
+                std::cout << time << " [LOG]: " << msg << std::endl;
+                log << time << " [LOG]: " << msg << std::endl;
+            }
+
+            log.close();
+        }
+
     enum { max_length = 1024 };
     char data_[max_length];
     int* connections_;
