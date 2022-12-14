@@ -48,6 +48,21 @@ class session
                 });
         }
 
+        void fast_response()
+        {
+            auto self(shared_from_this());
+            WrapperMessage* response = new WrapperMessage();
+            FastResponse* fast_response = new FastResponse();
+            
+            auto datetime = boost::posix_time::microsec_clock::local_time();
+            auto iso_datetime_string = boost::posix_time::to_iso_string(datetime);
+            auto iso_datetime_string_for_FastResponse = iso_datetime_string.substr(0, iso_datetime_string.find('.') + 4); // 4 because .xxx
+
+            fast_response->set_current_date_time(iso_datetime_string_for_FastResponse);
+            response->set_allocated_fast_response(fast_response);
+            do_write(std::move(response));
+        }
+
         void slow_write(){
             auto self(shared_from_this());
             WrapperMessage* new_msg = new WrapperMessage();
