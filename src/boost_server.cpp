@@ -6,6 +6,16 @@
 #include <fstream>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+// #24 Len Message
+#include <google/protobuf/io/coded_stream.h>
+#include <istream>
+#include <array>
+#include <fcntl.h> // flags (C_CREAT, O_WRONLY etc.)
+#include <stdio.h> 
+#include <io.h> // int fd = open and close
+#include <cstdio>
+
 #include "../proto/messages.pb.h"
 
 using boost::asio::ip::tcp;
@@ -29,9 +39,30 @@ class session
         void do_read()
         {
             auto self(shared_from_this());
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
+            if (sizeMessage_ == -1)
+            {
+                __int32* sizeBuffer = new __int32();
+
+                socket_.async_read_some(boost::asio::buffer(sizeBuffer, 4), // 4 --> varInt32
+                    [this, self](boost::system::error_code ec, std::size_t length)
+                    {
+                        
+                    });
+
+                std::cout << (__int32)sizeBuffer << std::endl;
+                sizeMessage_ = (__int32)sizeBuffer;
+
+                delete[] sizeBuffer;
+            }
+            
+            if (sizeMessage_ == -1)
+                return;
+
+            socket_.async_read_some(boost::asio::buffer(data_, sizeMessage_),
                 [this, self](boost::system::error_code ec, std::size_t length)
                 {
+                    sizeMessage_ = -1;
+
                     if ((boost::asio::error::eof == ec) ||
                     (boost::asio::error::connection_reset == ec))
                     {
@@ -124,10 +155,46 @@ class session
             log.close();
         }
 
+        void get_message(void* buffer, int size)
+        {
+            FILE* file = fopen("myfile.txt", "r");
+            int fd = _fileno(file);
+
+            if (fd == -1)
+            {
+                perror("Error: ");
+            }
+
+            google::protobuf::io::ZeroCopyInputStream* raw_input = new google::protobuf::io::FileInputStream(fd);
+            google::protobuf::io::CodedInputStream* coded_input = new google::protobuf::io::CodedInputStream(raw_input);
+
+            //uint32_t magic_number_uint32_t;
+            //coded_input->ReadLittleEndian32(&magic_number_uint32_t);
+            //if (magic_number_uint32_t != 1234) {
+            //    std::cerr << "File not in expected format." << std::endl;
+            //    return -1;
+            //}
+
+            google::protobuf::uint32 size1 = size;
+            coded_input->ReadVarint32(&size1);
+
+            char* text = new char[size1 + 1];
+            coded_input->ReadRaw(buffer, size1);
+            text[size1] = '\0';
+
+            delete coded_input;
+            delete raw_input;
+            _close(fd);
+
+            std::cout << "Text is: " << text << std::endl;
+            delete[] text;
+        }
+
     enum { max_length = 1024 };
     char data_[max_length];
     int* connections_;
     WrapperMessage* message_;
+    __int32 sizeMessage_ = -1;
     tcp::socket socket_;
     boost::asio::deadline_timer timer_;
 };
@@ -157,6 +224,65 @@ class tcp_server
 
 int main(int argc, char* argv[])
 {
+    //char buffer[1024]; // not in example
+
+    //// Output
+    //FILE* file = fopen("myfile.txt", "w+");
+    //int fd = _fileno(file);
+
+    //if (fd == -1)
+    //{
+    //    perror("Error: ");
+    //}
+    //
+    //google::protobuf::io::ZeroCopyOutputStream* raw_output = new google::protobuf::io::FileOutputStream(fd);
+    //google::protobuf::io::CodedOutputStream* coded_output = new google::protobuf::io::CodedOutputStream(raw_output);
+
+    //int magic_number = 1234;
+    //char text[] = "Hello world!";
+    //coded_output->WriteLittleEndian32(magic_number);
+    //coded_output->WriteVarint32(strlen(text));
+    //coded_output->WriteRaw(text, strlen(text));
+
+    //delete coded_output;
+    //delete raw_output;
+    //_close(fd);
+    //
+
+    //// Input
+    //FILE* file1 = fopen("myfile.txt", "r");
+    //int fd2 = _fileno(file1);
+
+    //if (fd2 == -1)
+    //{
+    //    perror("Error: ");
+    //    //return -1;
+    //}
+
+    //google::protobuf::io::ZeroCopyInputStream* raw_input = new google::protobuf::io::FileInputStream(fd2);
+    //google::protobuf::io::CodedInputStream* coded_input = new google::protobuf::io::CodedInputStream(raw_input);
+
+    //uint32_t magic_number_uint32_t;
+    //coded_input->ReadLittleEndian32(&magic_number_uint32_t);
+    //if (magic_number_uint32_t != 1234) {
+    //    std::cerr << "File not in expected format." << std::endl;
+    //    return -1;
+    //}
+
+    //google::protobuf::uint32 size;
+    //coded_input->ReadVarint32(&size);
+
+    //char* text2 = new char [size + 1];
+    //coded_input->ReadRaw(buffer, size);
+    //text2 [size] = '\0';
+
+    //delete coded_input;
+    //delete raw_input;
+    //_close(fd2);
+
+    //std::cout << "Text is: " << text2 << std::endl;
+    //delete [] text2;
+
     try
     {
         std::ifstream port_ini("src/port.ini");
