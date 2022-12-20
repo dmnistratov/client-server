@@ -4,6 +4,9 @@
 #include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <iostream>
+
+#include "session.h"
 
 
 class tcp_server : public QObject
@@ -14,19 +17,21 @@ public:
 
 public slots:
     void slotNewConnection();
-    void slotServerRead();
-    void slotServerWrite();
-    void slotFastResponse();
-    void slotSlowResponse();
+    //void slotServerRead();
+    //void slotServerWrite();
+    //void slotFastResponse();
+    //void slotSlowResponse();
     void slotClientDisconnected();
 
+    //void updateSocketConnections();
+
 signals:
-    void slowResponse();
-    void fastResponse();
+    //void slowResponse();
+    //void fastResponse();
 
 private:
     QTcpServer * mTcpServer;
-    QMap<int, QTcpSocket*> mTcpSocket;
+    QMap<qintptr, Session*> mSessions;
 };
 
 

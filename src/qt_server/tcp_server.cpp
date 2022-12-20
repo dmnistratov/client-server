@@ -17,13 +17,15 @@ tcp_server::tcp_server(QObject *parent) : QObject(parent)
 
 void tcp_server::slotNewConnection()
 {
-    int key = mTcpSocket.size();
-    mTcpSocket.insert(key, mTcpServer->nextPendingConnection());
+    std::cout << "New connection" << std::endl;
+    Session * newSession = new Session(mTcpServer->nextPendingConnection());
+    mSessions.insert(newSession->getSocketDescriptor(), newSession);
+    std::cout << newSession->getSocketDescriptor() << std::endl;
 
-    connect(mTcpSocket[key], &QTcpSocket::readyRead, this, &tcp_server::slotServerRead);
-    connect(mTcpSocket[key], &QTcpSocket::disconnected, this, &tcp_server::slotClientDisconnected);
+    //connect(mTcpSocket[key], &QTcpSocket::readyRead, this, &tcp_server::slotServerRead);
+    //connect(mTcpSocket[key], &QTcpSocket::disconnected, this, &tcp_server::slotClientDisconnected);
 }
-
+/*
 void tcp_server::slotServerRead()
 {
     // Read data, emit fast or slow respond
@@ -50,7 +52,7 @@ void tcp_server::slotSlowResponse()
     //slow response
     //connect(this, &tcp_server::slowResponse, this, &tcp_server::slotServerWrite);
     //connect(timer, &QTimer::timeout, this, [this](){ emit slowResponse(); });
-}
+}*/
 
 void tcp_server::slotClientDisconnected()
 {

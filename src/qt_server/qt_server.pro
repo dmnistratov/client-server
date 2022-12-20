@@ -9,7 +9,9 @@ CONFIG -= app_bundle
 
 SOURCES += \
         main.cpp \
-        tcp_server.cpp
+        session.cpp \
+        tcp_server.cpp \
+        ../../proto/messages.pb.cc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -17,5 +19,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
+    session.h \
     tcp_server.h \
-    tcp_server.h
+    ../../proto/messages.pb.h
+
+LIBS += -lprotobuf
