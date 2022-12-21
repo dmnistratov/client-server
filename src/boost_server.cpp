@@ -41,53 +41,58 @@ class session
             auto self(shared_from_this());
             if (sizeMessage_ == -1)
             {
-                __int32* sizeBuffer = new __int32();
+                char* sizeBuffer = new char[4];
 
-                socket_.async_read_some(boost::asio::buffer(sizeBuffer, 4), // 4 --> varInt32
+                socket_.async_read_some(boost::asio::buffer(sizeBuffer, 4),
                     [this, self](boost::system::error_code ec, std::size_t length)
-                    {
-                        
-                    });
-
-                std::cout << (__int32)sizeBuffer << std::endl;
-                sizeMessage_ = (__int32)sizeBuffer;
-
-                delete[] sizeBuffer;
-            }
-            
-            if (sizeMessage_ == -1)
-                return;
-
-            socket_.async_read_some(boost::asio::buffer(data_, sizeMessage_),
-                [this, self](boost::system::error_code ec, std::size_t length)
-                {
-                    sizeMessage_ = -1;
-
-                    if ((boost::asio::error::eof == ec) ||
-                    (boost::asio::error::connection_reset == ec))
                     {
                         write_log("Client disconnected.");
                         *connections_ -= 1;
-                    }
-                    if (!ec){
-                        message_ = new WrapperMessage();
-                        message_->ParseFromString(data_);
+                        sizeMessage_ = -1;
+                        return;
+                    });
 
-                        if (message_->has_request_for_fast_response())
+                sizeMessage_ = *reinterpret_cast<int*>(sizeBuffer);
+
+                write_log("Read client size message: " + std::to_string(sizeMessage_) + ".");
+
+                delete[] sizeBuffer;
+            }
+
+            if (sizeMessage_ > 0)
+            {
+                socket_.async_read_some(boost::asio::buffer(data_, sizeMessage_),
+                    [this, self](boost::system::error_code ec, std::size_t length)
+                    {
+                        if ((boost::asio::error::eof == ec) ||
+                        (boost::asio::error::connection_reset == ec))
                         {
-                            write_log("Client send request for fast response.");
-                            fast_response();
+                            write_log("Client disconnected.");
+                            *connections_ -= 1;
+                            sizeMessage_ = -1;
                             return;
                         }
+                    });
 
-                        if (message_->has_request_for_slow_response())
-                        {
-                            write_log("Client send request for slow response. Time to sleep = " + std::to_string(message_->request_for_slow_response().time_in_seconds_to_sleep()));
-                            slow_write();
-                            return;
-                        }  
-                    }
-                });
+                message_ = new WrapperMessage();
+                message_->ParseFromString(data_);
+
+                if (message_->has_request_for_fast_response())
+                {
+                    write_log("Client send request for fast response.");
+                    fast_response();
+                    sizeMessage_ = -1;
+                    return;
+                }
+
+                if (message_->has_request_for_slow_response())
+                {
+                    write_log("Client send request for slow response. Time to sleep = " + std::to_string(message_->request_for_slow_response().time_in_seconds_to_sleep()));
+                    slow_write();
+                    sizeMessage_ = -1;
+                    return;
+                }
+            }
         }
 
         void fast_response()
@@ -148,7 +153,7 @@ class session
             if (log.is_open())
             {
                 auto time = boost::posix_time::microsec_clock::local_time();
-                std::cout << time << " [LOG]: " << msg << std::endl;
+                //std::cout << time << " [LOG]: " << msg << std::endl;
                 log << time << " [LOG]: " << msg << std::endl;
             }
 
@@ -194,7 +199,7 @@ class session
     char data_[max_length];
     int* connections_;
     WrapperMessage* message_;
-    __int32 sizeMessage_ = -1;
+    int sizeMessage_ = -1;
     tcp::socket socket_;
     boost::asio::deadline_timer timer_;
 };
@@ -224,65 +229,6 @@ class tcp_server
 
 int main(int argc, char* argv[])
 {
-    //char buffer[1024]; // not in example
-
-    //// Output
-    //FILE* file = fopen("myfile.txt", "w+");
-    //int fd = _fileno(file);
-
-    //if (fd == -1)
-    //{
-    //    perror("Error: ");
-    //}
-    //
-    //google::protobuf::io::ZeroCopyOutputStream* raw_output = new google::protobuf::io::FileOutputStream(fd);
-    //google::protobuf::io::CodedOutputStream* coded_output = new google::protobuf::io::CodedOutputStream(raw_output);
-
-    //int magic_number = 1234;
-    //char text[] = "Hello world!";
-    //coded_output->WriteLittleEndian32(magic_number);
-    //coded_output->WriteVarint32(strlen(text));
-    //coded_output->WriteRaw(text, strlen(text));
-
-    //delete coded_output;
-    //delete raw_output;
-    //_close(fd);
-    //
-
-    //// Input
-    //FILE* file1 = fopen("myfile.txt", "r");
-    //int fd2 = _fileno(file1);
-
-    //if (fd2 == -1)
-    //{
-    //    perror("Error: ");
-    //    //return -1;
-    //}
-
-    //google::protobuf::io::ZeroCopyInputStream* raw_input = new google::protobuf::io::FileInputStream(fd2);
-    //google::protobuf::io::CodedInputStream* coded_input = new google::protobuf::io::CodedInputStream(raw_input);
-
-    //uint32_t magic_number_uint32_t;
-    //coded_input->ReadLittleEndian32(&magic_number_uint32_t);
-    //if (magic_number_uint32_t != 1234) {
-    //    std::cerr << "File not in expected format." << std::endl;
-    //    return -1;
-    //}
-
-    //google::protobuf::uint32 size;
-    //coded_input->ReadVarint32(&size);
-
-    //char* text2 = new char [size + 1];
-    //coded_input->ReadRaw(buffer, size);
-    //text2 [size] = '\0';
-
-    //delete coded_input;
-    //delete raw_input;
-    //_close(fd2);
-
-    //std::cout << "Text is: " << text2 << std::endl;
-    //delete [] text2;
-
     try
     {
         std::ifstream port_ini("src/port.ini");
