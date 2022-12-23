@@ -4,31 +4,42 @@
 #include <QObject>
 #include <QTcpSocket>
 #include <iostream>
+#include <QTimer>
+#include <QDateTime>
 
 #include "../../proto/messages.pb.h"
+
+using namespace TestTask::Messages;
 
 class Session : public QObject
 {
     Q_OBJECT
 public:
     explicit Session(QTcpSocket* socket, QObject *parent = nullptr);
-    //~Session();
+    ~Session();
 
 signals:
-    //void updateConnections();
+    void updateConnections(qintptr descriptor);
+    void fastRespond();
+    void slowRespond();
+    void readyWrite(WrapperMessage* respond_message);
+    void sessionClosed(qintptr descriptor);
 
 public:
-    //void setConnections(int connections);
+    void setConnections(int connections);
     qintptr getSocketDescriptor();
 
 public slots:
     void slotServerRead();
-    void slotServerWrite();
+    void slotServerWrite(WrapperMessage* respond_message);
+    void slotFastRespond();
+    void slotSlowRespond();
 
 private:
     QTcpSocket* socket_;
     int connections_;
-    TestTask::Messages::WrapperMessage* message_;
+    WrapperMessage* message_;
+    QTimer* timer_;
 
 };
 

@@ -16,18 +16,9 @@ public:
     explicit tcp_server(QObject *parent = nullptr);
 
 public slots:
-    void slotNewConnection();
-    //void slotServerRead();
-    //void slotServerWrite();
-    //void slotFastResponse();
-    //void slotSlowResponse();
-    void slotClientDisconnected();
-
-    //void updateSocketConnections();
-
-signals:
-    //void slowResponse();
-    //void fastResponse();
+    void slotNewSession();
+    void slotCloseSession(qintptr descriptor);
+    void updateSocketConnections(qintptr descriptor);
 
 private:
     QTcpServer * mTcpServer;
