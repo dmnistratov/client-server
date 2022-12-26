@@ -115,7 +115,8 @@ class session
             auto self(shared_from_this());
             WrapperMessage* new_msg = new WrapperMessage();
             SlowResponse* slow = new SlowResponse();
-            slow->set_connected_client_count(*connections_);
+            int countConnection = *connections_;
+            slow->set_connected_client_count(countConnection);
             new_msg->set_allocated_slow_response(slow);
             timer_.expires_from_now(boost::posix_time::seconds(message_->request_for_slow_response().time_in_seconds_to_sleep()));
             timer_.async_wait([this, self, new_msg](const boost::system::error_code &ec){
@@ -153,7 +154,7 @@ class session
             if (log.is_open())
             {
                 auto time = boost::posix_time::microsec_clock::local_time();
-                //std::cout << time << " [LOG]: " << msg << std::endl;
+                std::cout << boost::posix_time::to_simple_string(time) << " [LOG]: " << msg << std::endl;
                 log << time << " [LOG]: " << msg << std::endl;
             }
 
