@@ -46,17 +46,22 @@ class session
                 socket_.async_read_some(boost::asio::buffer(sizeBuffer, 4),
                     [this, self](boost::system::error_code ec, std::size_t length)
                     {
-                        write_log("Client disconnected.");
-                        *connections_ -= 1;
-                        sizeMessage_ = -1;
-                        return;
                     });
 
                 sizeMessage_ = *reinterpret_cast<int*>(sizeBuffer);
 
-                write_log("Read client size message: " + std::to_string(sizeMessage_) + ".");
+                if (sizeMessage_ > 0)
+                    write_log("Read client size message: " + std::to_string(sizeMessage_) + ".");
 
                 delete[] sizeBuffer;
+
+                if (sizeMessage_ <= 0)
+                {
+                    write_log("Client disconnected.");
+                    *connections_ -= 1;
+                    sizeMessage_ = -1;
+                    return;
+                }
             }
 
             if (sizeMessage_ > 0)
@@ -119,9 +124,9 @@ class session
             slow->set_connected_client_count(countConnection);
             new_msg->set_allocated_slow_response(slow);
             timer_.expires_from_now(boost::posix_time::seconds(message_->request_for_slow_response().time_in_seconds_to_sleep()));
-            timer_.async_wait([this, self, new_msg](const boost::system::error_code &ec){
+            timer_.async_wait([this, self, new_msg, countConnection](const boost::system::error_code &ec){
                 if (!ec){
-                    write_log("Server send slow response with count connections = " + std::to_string(*connections_));
+                    write_log("Server send slow response with count connections = " + std::to_string(countConnection));
                     do_write(std::move(new_msg));
             }});
         }
@@ -159,41 +164,6 @@ class session
             }
 
             log.close();
-        }
-
-        void get_message(void* buffer, int size)
-        {
-            FILE* file = fopen("myfile.txt", "r");
-            int fd = _fileno(file);
-
-            if (fd == -1)
-            {
-                perror("Error: ");
-            }
-
-            google::protobuf::io::ZeroCopyInputStream* raw_input = new google::protobuf::io::FileInputStream(fd);
-            google::protobuf::io::CodedInputStream* coded_input = new google::protobuf::io::CodedInputStream(raw_input);
-
-            //uint32_t magic_number_uint32_t;
-            //coded_input->ReadLittleEndian32(&magic_number_uint32_t);
-            //if (magic_number_uint32_t != 1234) {
-            //    std::cerr << "File not in expected format." << std::endl;
-            //    return -1;
-            //}
-
-            google::protobuf::uint32 size1 = size;
-            coded_input->ReadVarint32(&size1);
-
-            char* text = new char[size1 + 1];
-            coded_input->ReadRaw(buffer, size1);
-            text[size1] = '\0';
-
-            delete coded_input;
-            delete raw_input;
-            _close(fd);
-
-            std::cout << "Text is: " << text << std::endl;
-            delete[] text;
         }
 
     enum { max_length = 1024 };
