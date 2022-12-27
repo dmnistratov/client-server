@@ -1,12 +1,10 @@
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <utility>
 #include <bitset>
 #include <fstream>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "../proto/messages.pb.h"
+#include "../../proto/messages.pb.h"
 
 using boost::asio::ip::tcp;
 using namespace TestTask::Messages;
@@ -159,6 +157,7 @@ int main(int argc, char* argv[])
 {
     try
     {
+        std::cout << __cplusplus << std::endl;
         std::ifstream port_ini("src/port.ini");
 
         std::string port;

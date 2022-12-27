@@ -4,3 +4,5 @@ __pycache__/
 proto/*
 !proto/messages.proto
 log.log
+src/build-qt_server-*/
+src/qt_server/qt_server.pro.user
