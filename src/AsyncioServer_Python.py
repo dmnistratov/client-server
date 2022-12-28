@@ -30,6 +30,8 @@ class AsyncioServer:
         self._countClient += 1
         Common.write_log('Client connected.')
 
+        data_ = reader.read()
+
         size: int = int.from_bytes(await reader.read(4), byteorder='little')
         requestMessage: messages_pb2.WrapperMessage = messages_pb2.WrapperMessage()
 
