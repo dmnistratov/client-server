@@ -8,6 +8,7 @@
 #include <QDateTime>
 
 #include "../../proto/messages.pb.h"
+#include "../common/parse.h"
 
 using namespace TestTask::Messages;
 

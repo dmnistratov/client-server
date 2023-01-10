@@ -21,6 +21,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     session.h \
     tcp_server.h \
-    ../../proto/messages.pb.h
+    ../../proto/messages.pb.h \
+    ../common/parse.h
+
 
 LIBS += -lprotobuf

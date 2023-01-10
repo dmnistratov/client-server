@@ -34,17 +34,18 @@ qintptr Session::getSocketDescriptor()
 void Session::slotServerRead()
 {
     // Add read size
-    QByteArray byte;
-    while(socket_->bytesAvailable()>0)
-    {
-        byte = socket_->readAll();
+    std::vector<char> m_buffer;
+    for (const char byte : socket_->readAll()){
+        m_buffer.push_back(byte);
     }
-    QString data = QString(byte);
+
+    parseDelimited<WrapperMessage>(m_buffer.data(), m_buffer.size());
+    /*QString data = QString(byte);
     message_->ParseFromString(data.toStdString());
     if (message_->has_request_for_fast_response())
         emit fastRespond();
     if (message_->has_request_for_slow_response())
-        timer_->start(message_->request_for_slow_response().time_in_seconds_to_sleep() * 1000);
+        timer_->start(message_->request_for_slow_response().time_in_seconds_to_sleep() * 1000);*/
 }
 
 void Session::slotServerWrite(WrapperMessage* respond_message)
