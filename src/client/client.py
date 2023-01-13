@@ -26,9 +26,11 @@ PORT = 25555
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
-    s.send(message.SerializeToString())
+    print(message.SerializeToString())
+    print(message.ByteSize())
+    print(b'0002')
+    s.send(message.ByteSize().to_bytes(4, byteorder='big') + message.SerializeToString())
     data = s.recv(1024)
 
-print(data)
 message.ParseFromString(data)
 print(message)

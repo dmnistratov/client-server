@@ -5,7 +5,6 @@ Session::Session(QTcpSocket* socket,QObject *parent)
 {
     timer_ = new QTimer();
     timer_->setSingleShot(true);
-    message_ = new WrapperMessage();
     connections_ = 0;
     qintptr descriptor = socket->socketDescriptor();
     connect(socket_, &QTcpSocket::readyRead, this, &Session::slotServerRead);
@@ -18,7 +17,6 @@ Session::Session(QTcpSocket* socket,QObject *parent)
 Session::~Session()
 {
     delete timer_;
-    delete message_;
 }
 
 void Session::setConnections(int connections)
@@ -34,17 +32,23 @@ qintptr Session::getSocketDescriptor()
 void Session::slotServerRead()
 {
     // Add read size
-    QByteArray byte;
-    while(socket_->bytesAvailable()>0)
-    {
-        byte = socket_->readAll();
+    std::vector<char> m_buffer;
+    for (const char byte : socket_->readAll()){
+        const std::list<DelimitedMessagesStreamParser<WrapperMessage>::PointerToConstValue>& parsedMessages = parser.parse(std::string(1, byte));
+         for(const DelimitedMessagesStreamParser<WrapperMessage>::PointerToConstValue& value : parsedMessages)
+         {
+            messages.push_back(value);
+         }
+        //m_buffer.push_back(byte);
     }
-    QString data = QString(byte);
-    message_->ParseFromString(data.toStdString());
-    if (message_->has_request_for_fast_response())
-        emit fastRespond();
-    if (message_->has_request_for_slow_response())
-        timer_->start(message_->request_for_slow_response().time_in_seconds_to_sleep() * 1000);
+
+    //message_ = parseDelimited<WrapperMessage>(m_buffer.data(), m_buffer.size());
+    for (auto message : messages){
+        if (message->has_request_for_fast_response())
+            emit fastRespond();
+        else if (message->has_request_for_slow_response())
+            timer_->start(message->request_for_slow_response().time_in_seconds_to_sleep() * 1000);
+    }
 }
 
 void Session::slotServerWrite(WrapperMessage* respond_message)

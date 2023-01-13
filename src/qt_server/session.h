@@ -8,6 +8,7 @@
 #include <QDateTime>
 
 #include "../../proto/messages.pb.h"
+#include "../common/parse.h"
 
 using namespace TestTask::Messages;
 
@@ -36,11 +37,13 @@ public slots:
     void slotSlowRespond();
 
 private:
+    typedef DelimitedMessagesStreamParser<WrapperMessage> Parser;
+    Parser parser;
     QTcpSocket* socket_;
     int connections_;
-    WrapperMessage* message_;
+    std::shared_ptr<WrapperMessage> message_;
     QTimer* timer_;
-
+    std::vector<DelimitedMessagesStreamParser<WrapperMessage>::PointerToConstValue> messages;
 };
 
 #endif // SESSION_H
