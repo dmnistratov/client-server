@@ -13,27 +13,44 @@
  #include <list>
  #include <memory>
  #include <vector>
+ 
  template<typename Message>
  std::shared_ptr<Message> parseDelimited(const void* data, size_t size, size_t* bytesConsumed = 0){
     if (size < 4)
         return nullptr;
-    std::cout << size << std::endl;
-    const char* message = static_cast<const char*>(data);
-    int a = (int)(message[0] << 24 | message[1] << 16 | message[2] << 8 | message[3]);
-    int b;
-    std::memcpy(&b, message, sizeof(int));
-    std::cout << b << std::endl;
-    return nullptr;
+
+    std::string buffer(static_cast<const char*>(data), size);
+    size_t length = static_cast<size_t>(buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3]);
+
+    if (length > size - 4)
+        return nullptr;
+
+    auto message = std::make_shared<Message>();
+    message->ParseFromString(buffer.substr(4, 4 + length));
+    *bytesConsumed = 4 + length;
+    return message;
  };
 
  template<typename MessageType>
  class DelimitedMessagesStreamParser
  {
- public:
- typedef std::shared_ptr<const MessageType> PointerToConstValue;
- std::list<PointerToConstValue> parse(const std::string& data){
- };
+    public:
+    typedef std::shared_ptr<const MessageType> PointerToConstValue;
+    std::list<PointerToConstValue> parse(const std::string& data){
+        for (auto byte : data)
+            m_buffer.push_back(byte);
 
- private:
- std::vector<char> m_buffer;
- };
+        size_t bytesConsumed = 0;
+        std::list<PointerToConstValue> messages;
+        for (auto message = parseDelimited<MessageType>(m_buffer.data(), m_buffer.size(), &bytesConsumed); message != nullptr; message = parseDelimited<MessageType>(m_buffer.data(), m_buffer.size(), &bytesConsumed)){
+            messages.push_back(message);
+            m_buffer.erase(m_buffer.begin(), m_buffer.begin() + bytesConsumed);
+            bytesConsumed = 0;
+        }
+
+        return messages;
+    };
+
+    private:
+    std::vector<char> m_buffer;
+};
