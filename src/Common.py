@@ -21,21 +21,4 @@ def write_log(msg: str):
 def get_port_from_file(fileName: str = 'port.ini'):
     _file = open(fileName, 'r')
     port = int(_file.readline())
-    return port
-
-# @types.coroutine
-async def read_data(reader: asyncio.StreamReader):
-    data_ = bytearray()
-    # data_ = reader.read()
-
-    # data_ = bytearray()
-    while not reader.at_eof():
-        data_ += await reader.read(1024)
-
-    # data_: str = b''
-    # while True:
-    #     chunk = yield from reader.read(4)
-    #     if not chunk:
-    #         break
-    #     data_ += chunk
-    return data_    
+    return port  
