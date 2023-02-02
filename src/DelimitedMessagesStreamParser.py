@@ -9,7 +9,7 @@ class DelimitedMessagesStreamParser:
 
         while tupleMsg is not None:
             currentMessage.ParseFromString(bytes_[tupleMsg[1] + 4:(tupleMsg[0] + tupleMsg[1] + 4)])
-            messages_.append(currentMessage)
+            messages_.append(currentMessage.__deepcopy__())
             offset += tupleMsg[0] + 4
             tupleMsg = self._DecodeVarint32(bytes_, offset)
 
@@ -21,10 +21,10 @@ class DelimitedMessagesStreamParser:
 
         sizeMsg = int.from_bytes(bytes_[start: start + 4], byteorder='little')
 
-        if sizeMsg == 0:
+        if sizeMsg == 0 or sizeMsg > 8:
             return None
 
-        if sizeMsg > len(bytes_) - start:
+        if sizeMsg > len(bytes_) - start - 4:
             return None
 
         return sizeMsg, start

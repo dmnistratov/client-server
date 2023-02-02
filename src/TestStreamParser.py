@@ -15,6 +15,7 @@ class Test_TestStreamParser(unittest.TestCase):
 
         size: int = len(message.SerializeToString())
         byteStr = (size).to_bytes(4, byteorder='little') + message.SerializeToString()
+
         self.assertEqual(self._parser.parse(byteStr), [message])
 
     def test_SlowResponse(self):
@@ -23,10 +24,11 @@ class Test_TestStreamParser(unittest.TestCase):
 
         size: int = len(message.SerializeToString())
         byteStr = (size).to_bytes(4, byteorder='little') + message.SerializeToString()
+
         self.assertEqual(self._parser.parse(byteStr), [message])
 
 
-    def test_SlowAndFastResponse(self):
+    def test_FastAndSlowResponse(self):
         # message one
         message1 = messages_pb2.WrapperMessage()
         message1.request_for_fast_response.SetInParent()
