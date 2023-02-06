@@ -85,5 +85,22 @@ class Test_TestStreamParser(unittest.TestCase):
 
         self.assertEqual(self._parser.parse(byteStr), [message1])
 
+    def test_sizeMsgMore8Byte(self):
+        message = messages_pb2.WrapperMessage()
+        message.request_for_fast_response.SetInParent()
+
+        size: int = len(message.SerializeToString())
+        byteStr = (size + 10).to_bytes(4, byteorder='little') + message.SerializeToString() # +10
+
+        self.assertEqual(self._parser.parse(byteStr), [])
+
+    def test_sizeMsgLessOrEqualNullByte(self):
+        message = messages_pb2.WrapperMessage()
+        message.request_for_fast_response.SetInParent()
+
+        byteStr = (0).to_bytes(4, byteorder='little') + message.SerializeToString() # size = 0
+
+        self.assertEqual(self._parser.parse(byteStr), [])
+
 if __name__ == '__main__':
     unittest.main()
