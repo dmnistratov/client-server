@@ -1,3 +1,7 @@
+import sys
+
+sys.path.insert(1, '../../src/common')
+
 import unittest
 import messages_pb2
 from DelimitedMessagesStreamParser import DelimitedMessagesStreamParser

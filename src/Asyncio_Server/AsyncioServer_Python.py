@@ -1,7 +1,10 @@
-import asyncio
-import Common
-from DelimitedMessagesStreamParser import DelimitedMessagesStreamParser
+import sys
 
+sys.path.insert(1, '../../src/common')
+
+import asyncio
+from DelimitedMessagesStreamParser import DelimitedMessagesStreamParser
+import common_server_func as Common
 
 class AsyncioServer:
     _countClient: int
@@ -86,5 +89,5 @@ class AsyncioServer:
             self.do_accept(reader)
 
 
-server: AsyncioServer = AsyncioServer('127.0.0.1', Common.get_port_from_file())
+server: AsyncioServer = AsyncioServer('127.0.0.1', Common.get_port_from_file('../common/port.ini'))
 server.start()
