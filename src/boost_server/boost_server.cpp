@@ -2,9 +2,11 @@
 #include <iostream>
 #include <bitset>
 #include <fstream>
+#include <vector>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "../../proto/messages.pb.h"
+#include "../common/DelimitedMessagesStreamParser.h"
 
 using boost::asio::ip::tcp;
 using namespace TestTask::Messages;
@@ -37,22 +39,44 @@ class session
                         *connections_ -= 1;
                     }
                     if (!ec){
-                        message_ = new WrapperMessage();
-                        message_->ParseFromString(data_);
-
-                        if (message_->has_request_for_fast_response())
+                        //message_ = new WrapperMessage();
+                        //message_->ParseFromString(data_);
+                        
+                        auto parser = DelimitedMessagesStreamParser<WrapperMessage>();
+                        auto messages = std::vector<const std::shared_ptr<const WrapperMessage>>();
+                        for (const char byte : data_)
                         {
-                            write_log("Client send request for fast response.");
-                            fast_response();
-                            return;
+                            const std::list<DelimitedMessagesStreamParser<WrapperMessage>::PointerToConstValue> parsedMessages = parser.parse(std::string(1, byte));
+                            for (const DelimitedMessagesStreamParser<WrapperMessage>::PointerToConstValue value : parsedMessages)
+                            {
+                                messages.push_back(value);
+                            }
+                            // /*std::list<std::shared_ptr<const WrapperMessage>>*/auto parsedMessages = parser.parse(std::string(1, byte));
+                            /*const std::list<std::shared_ptr<const WrapperMessage>>& parsedMessages = parser.parse(std::string(1, byte));
+                            for (std::shared_ptr<const WrapperMessage> value : parsedMessages)
+                            {
+                                messages.push_back(*value);
+                            }*/
                         }
+                        
+                        //std::list<std::shared_ptr<const WrapperMessage>> messages = parser.parse(data_);
 
-                        if (message_->has_request_for_slow_response())
+                        for (auto msg : messages)
                         {
-                            write_log("Client send request for slow response. Time to sleep = " + std::to_string(message_->request_for_slow_response().time_in_seconds_to_sleep()));
-                            slow_write();
-                            return;
-                        }  
+                            if (msg->has_request_for_fast_response())
+                            {
+                                write_log("Client send request for fast response.");
+                                fast_response();
+                                return;
+                            }
+
+                            if (msg->has_request_for_slow_response())
+                            {
+                                write_log("Client send request for slow response. Time to sleep = " + std::to_string(msg->request_for_slow_response().time_in_seconds_to_sleep()));
+                                slow_write();
+                                return;
+                            }
+                        }
                     }
                 });
         }
