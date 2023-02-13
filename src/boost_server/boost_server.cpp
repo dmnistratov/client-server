@@ -39,11 +39,9 @@ class session
                         *connections_ -= 1;
                     }
                     if (!ec){
-                        //message_ = new WrapperMessage();
-                        //message_->ParseFromString(data_);
-                        
                         auto parser = DelimitedMessagesStreamParser<WrapperMessage>();
-                        auto messages = std::vector<const std::shared_ptr<const WrapperMessage>>();
+                        auto messages = std::vector<DelimitedMessagesStreamParser<WrapperMessage>::PointerToConstValue>();
+
                         for (const char byte : data_)
                         {
                             const std::list<DelimitedMessagesStreamParser<WrapperMessage>::PointerToConstValue> parsedMessages = parser.parse(std::string(1, byte));
@@ -51,15 +49,7 @@ class session
                             {
                                 messages.push_back(value);
                             }
-                            // /*std::list<std::shared_ptr<const WrapperMessage>>*/auto parsedMessages = parser.parse(std::string(1, byte));
-                            /*const std::list<std::shared_ptr<const WrapperMessage>>& parsedMessages = parser.parse(std::string(1, byte));
-                            for (std::shared_ptr<const WrapperMessage> value : parsedMessages)
-                            {
-                                messages.push_back(*value);
-                            }*/
                         }
-                        
-                        //std::list<std::shared_ptr<const WrapperMessage>> messages = parser.parse(data_);
 
                         for (auto msg : messages)
                         {
@@ -73,7 +63,7 @@ class session
                             if (msg->has_request_for_slow_response())
                             {
                                 write_log("Client send request for slow response. Time to sleep = " + std::to_string(msg->request_for_slow_response().time_in_seconds_to_sleep()));
-                                slow_write();
+                                slow_write(msg->request_for_slow_response().time_in_seconds_to_sleep());
                                 return;
                             }
                         }
@@ -97,13 +87,13 @@ class session
             write_log("Server send fast response.");
         }
 
-        void slow_write(){
+        void slow_write(int timeSleep){
             auto self(shared_from_this());
             WrapperMessage* new_msg = new WrapperMessage();
             SlowResponse* slow = new SlowResponse();
             slow->set_connected_client_count(*connections_);
             new_msg->set_allocated_slow_response(slow);
-            timer_.expires_from_now(boost::posix_time::seconds(message_->request_for_slow_response().time_in_seconds_to_sleep()));
+            timer_.expires_from_now(boost::posix_time::seconds(timeSleep));
             timer_.async_wait([this, self, new_msg](const boost::system::error_code &ec){
                 if (!ec){
                     write_log("Server send slow response with count connections = " + std::to_string(*connections_));
@@ -178,7 +168,7 @@ class tcp_server
 };
 
 int main(int argc, char* argv[])
-{
+{    
     try
     {
         std::cout << __cplusplus << std::endl;
